@@ -20,7 +20,6 @@ Python 自动化运维- 基于 **psutil** 的 服务端口/网络进程 管理�
 列出所有正在监听的端口
 
 ```bash
-./net-process-manager
 # or
 ./net-process-manager -l
 # or
@@ -36,27 +35,12 @@ Python 自动化运维- 基于 **psutil** 的 服务端口/网络进程 管理�
 ./net-process-manager -u
 ```
 
-指定网络接口
-
-```bash
-./net-process-manager 127.0.0.1
-# or
-./net-process-manager eth0
-```
-
 ### 杀死进程
 
 通过指定端口
 
 ```bash
 ./net-process-manager -r <PORT>
-```
-
-通过进程的PID
-
-```bash
-./net-process-manager -r -p <PID>
-./net-process-manager -r --pid <PID>
 ```
 
 ## 注意
