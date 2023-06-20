@@ -22,29 +22,17 @@ import socket
 from prettytable import PrettyTable
 from docopt import docopt
 
-import os
-import signal
 
-def kill_proc_tree(pid, sig=signal.SIGTERM, include_parent=True,
-                   timeout=None, on_terminate=None):
-    """Kill a process tree (including grandchildren) with signal
-    "sig" and return a (gone, still_alive) tuple.
-    "on_terminate", if specified, is a callback function which is
-    called as soon as a child terminates.
-    """
-    assert pid != os.getpid(), "won't kill myself"
-    parent = psutil.Process(pid)
-    children = parent.children(recursive=True)
-    if include_parent:
-        children.append(parent)
-    for p in children:
-        try:
-            p.send_signal(sig)
-        except psutil.NoSuchProcess:
-            pass
-    gone, alive = psutil.wait_procs(children, timeout=timeout,
-                                    callback=on_terminate)
-    return (gone, alive)
+def kill_proc(pid):
+    try:
+        process = psutil.Process(pid)  # 根据进程ID获取进程对象
+        process.terminate()  # 终止进程
+        print(f"进程 {pid} 已成功终止。")
+    except psutil.NoSuchProcess:
+        print(f"找不到进程 {pid}。")
+    except psutil.AccessDenied:
+        print(f"没有足够的权限终止进程 {pid}。")
+
 
 def main():
     # 2. 解析命令行
@@ -70,9 +58,10 @@ def main():
         process_exists = False
         for process in process_list:
             if process[4] == int(arguments['<port>']):
-                kill_proc_tree(int(process[0]))
+                kill_proc(int(process[0]))
                 process_exists = True
                 print("The process that specifying port is {}, pid is {} has ended.".format(arguments['<port>'], process[0]))
+                break
         if not process_exists:
             print("The process don't exist")
     elif arguments['--version']:
@@ -100,6 +89,7 @@ def main():
             else:
                 table.add_row([pid_s, "", proto_s, ip, port])
         print(table)
+
 
 if __name__ == "__main__":
     main()
