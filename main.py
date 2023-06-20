@@ -23,7 +23,19 @@ from prettytable import PrettyTable
 from docopt import docopt
 
 
-def kill_proc(pid):
+def get_pid_by_port(port: int):
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            connections = proc.connections()
+            for conn in connections:
+                if conn.status == psutil.CONN_LISTEN and conn.laddr.port == port:
+                    return proc.pid
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    return None
+
+
+def kill_proc(pid: int):
     try:
         process = psutil.Process(pid)  # 根据进程ID获取进程对象
         process.terminate()  # 终止进程
@@ -37,36 +49,15 @@ def kill_proc(pid):
 def main():
     # 2. 解析命令行
     arguments = docopt(__doc__, options_first=True)
-    table = PrettyTable(['pid', 'name', 'tcp/udp', 'listening ip', 'port'])
-    lc = psutil.net_connections('inet')
-    process_list = []
-    for c in lc:
-        (ip, port) = c.laddr
-        proto_s = "tcp" if c.type == socket.SOCK_STREAM and c.status == psutil.CONN_LISTEN else (
-            "udp" if c.type == socket.SOCK_DGRAM else "")
-        pid_s = str(c.pid) if c.pid else '(unknown)'
-        try:
-            p = psutil.Process(int(pid_s))
-        except Exception:
-            continue
-        if pid_s != "(unknown)":
-            process_list.append([pid_s, p.name(), proto_s, ip, port])
-        else:
-            process_list.append([pid_s, "", proto_s, ip, port])
-
     if arguments['--rm']:
-        process_exists = False
-        for process in process_list:
-            if process[4] == int(arguments['<port>']):
-                kill_proc(int(process[0]))
-                process_exists = True
-                print("The process that specifying port is {}, pid is {} has ended.".format(arguments['<port>'], process[0]))
-                break
-        if not process_exists:
-            print("The process don't exist")
+        proc_pid = get_pid_by_port(int(arguments['<port>']))
+        kill_proc(proc_pid)
     elif arguments['--version']:
         print("version")
     else:
+        table = PrettyTable(['pid', 'name', 'tcp/udp', 'listening ip', 'port'])
+        lc = psutil.net_connections('inet')
+        # 生成表格并打印
         for c in lc:
             (ip, port) = c.laddr
             proto_s = "tcp" if c.type == socket.SOCK_STREAM and c.status == psutil.CONN_LISTEN else (
